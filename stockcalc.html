@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StockCalc - 定期定額與複利視覺化試算器</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50 = '#ecfdf5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbar for Table */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(51, 65, 85, 0.8);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(71, 85, 105, 1);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="p-2.5 bg-gradient-to-tr from-emerald-600 to-teal-500 rounded-xl text-white shadow-lg shadow-emerald-500/20">
+          <i class="fa-solid fa-chart-line text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
+            StockCalc 複利試算器
+          </h1>
+          <p class="text-xs text-slate-400">定期定額 & 複利成長視覺化分析網頁</p>
+        </div>
+      </div>
+      <div class="hidden sm:flex items-center space-x-2 text-xs text-slate-400">
+        <span class="px-3 py-1.5 bg-slate-800/80 rounded-full border border-slate-700/60 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          單頁整合架構 (Single File)
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Left Controls Panel (5 cols) -->
+    <div class="lg:col-span-5 bg-slate-900/70 border border-slate-800 rounded-2xl p-5 sm:p-6 flex flex-col justify-between space-y-6 shadow-xl backdrop-blur">
+      
+      <div class="space-y-6">
+        <!-- Title & Presets -->
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <h2 class="text-base font-semibold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-sliders text-emerald-400"></i>投資條件設定
+          </h2>
+          <span class="text-xs text-slate-500">可同步修改數值或滑桿</span>
+        </div>
+
+        <!-- Strategy Presets -->
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-2">一鍵載入投資情境範本</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="applyPreset('conservative')" class="py-2.5 px-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded-xl transition text-slate-300 text-xs text-center group">
+              <i class="fa-solid fa-shield-halved text-blue-400 group-hover:scale-110 transition-transform mb-1 block text-sm"></i>
+              <span class="font-medium">保守防守</span>
+              <span class="block text-[10px] text-slate-500">3% (定存/債券)</span>
+            </button>
+            <button onclick="applyPreset('balanced')" class="py-2.5 px-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded-xl transition text-slate-300 text-xs text-center group">
+              <i class="fa-solid fa-chart-pie text-emerald-400 group-hover:scale-110 transition-transform mb-1 block text-sm"></i>
+              <span class="font-medium">穩健配置</span>
+              <span class="block text-[10px] text-slate-500">8% (大盤 ETF)</span>
+            </button>
+            <button onclick="applyPreset('aggressive')" class="py-2.5 px-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded-xl transition text-slate-300 text-xs text-center group">
+              <i class="fa-solid fa-rocket text-amber-400 group-hover:scale-110 transition-transform mb-1 block text-sm"></i>
+              <span class="font-medium">積極成長</span>
+              <span class="block text-[10px] text-slate-500">12% (科技成長股)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Inputs Section -->
+        <div class="space-y-5">
+
+          <!-- Initial Capital -->
+          <div class="space-y-2">
+            <div class="flex justify-between items-center text-xs font-medium text-slate-300">
+              <label for="initCapitalNumber" class="flex items-center gap-1.5">
+                <i class="fa-solid fa-vault text-slate-400"></i>單筆初始本金 (NT$)
+              </label>
+              <div class="flex items-center space-x-1 bg-slate-800/90 border border-slate-700 px-2 py-1 rounded-lg">
+                <span class="text-slate-500">$</span>
+                <input type="number" id="initCapitalNumber" min="0" max="5000000" step="10000" value="100000" 
+                  class="w-24 bg-transparent text-right font-mono font-bold text-emerald-400 focus:outline-none">
+              </div>
+            </div>
+            <input type="range" id="initCapitalRange" min="0" max="2000000" step="10000" value="100000" 
+              class="w-full accent-emerald-500 bg-slate-800 rounded-lg h-2 cursor-pointer">
+          </div>
+
+          <!-- Monthly Investment -->
+          <div class="space-y-2">
+            <div class="flex justify-between items-center text-xs font-medium text-slate-300">
+              <label for="monthlyNumber" class="flex items-center gap-1.5">
+                <i class="fa-solid fa-calendar-check text-slate-400"></i>每月定期定額 (NT$)
+              </label>
+              <div class="flex items-center space-x-1 bg-slate-800/90 border border-slate-700 px-2 py-1 rounded-lg">
+                <span class="text-slate-500">$</span>
+                <input type="number" id="monthlyNumber" min="0" max="500000" step="1000" value="10000" 
+                  class="w-24 bg-transparent text-right font-mono font-bold text-emerald-400 focus:outline-none">
+              </div>
+            </div>
+            <input type="range" id="monthlyRange" min="0" max="100000" step="1000" value="10000" 
+              class="w-full accent-emerald-500 bg-slate-800 rounded-lg h-2 cursor-pointer">
+          </div>
+
+          <!-- Annual Return Rate -->
+          <div class="space-y-2">
+            <div class="flex justify-between items-center text-xs font-medium text-slate-300">
+              <label for="rateNumber" class="flex items-center gap-1.5">
+                <i class="fa-solid fa-percent text-slate-400"></i>預期年化報酬率 (%)
+              </label>
+              <div class="flex items-center space-x-1 bg-slate-800/90 border border-slate-700 px-2 py-1 rounded-lg">
+                <input type="number" id="rateNumber" min="0.1" max="30" step="0.5" value="8" 
+                  class="w-16 bg-transparent text-right font-mono font-bold text-emerald-400 focus:outline-none">
+                <span class="text-slate-500">%</span>
+              </div>
+            </div>
+            <input type="range" id="rateRange" min="0.5" max="25" step="0.5" value="8" 
+              class="w-full accent-emerald-500 bg-slate-800 rounded-lg h-2 cursor-pointer">
+          </div>
+
+          <!-- Investment Years -->
+          <div class="space-y-2">
+            <div class="flex justify-between items-center text-xs font-medium text-slate-300">
+              <label for="yearsNumber" class="flex items-center gap-1.5">
+                <i class="fa-solid fa-hourglass-half text-slate-400"></i>投資年限 (年)
+              </label>
+              <div class="flex items-center space-x-1 bg-slate-800/90 border border-slate-700 px-2 py-1 rounded-lg">
+                <input type="number" id="yearsNumber" min="1" max="50" step="1" value="20" 
+                  class="w-16 bg-transparent text-right font-mono font-bold text-emerald-400 focus:outline-none">
+                <span class="text-slate-500">年</span>
+              </div>
+            </div>
+            <input type="range" id="yearsRange" min="1" max="40" step="1" value="20" 
+              class="w-full accent-emerald-500 bg-slate-800 rounded-lg h-2 cursor-pointer">
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Formula Notice Card -->
+      <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-3.5 text-xs text-slate-400 space-y-1">
+        <p class="font-semibold text-slate-300 flex items-center gap-1.5">
+          <i class="fa-solid fa-circle-info text-teal-400"></i>試算邏輯說明
+        </p>
+        <p class="text-[11px] leading-relaxed text-slate-400">
+          系統採<strong class="text-slate-300">按月複利滾動計算</strong>。每月初投入定期定額資金，每月月利率以 <code class="text-emerald-400 font-mono">年利率 / 12</code> 計算。
+        </p>
+      </div>
+
+    </div>
+
+    <!-- Right Visualization Panel (7 cols) -->
+    <div class="lg:col-span-7 flex flex-col space-y-6">
+
+      <!-- Summary KPI Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <!-- Total Assets -->
+        <div class="bg-gradient-to-b from-emerald-950/40 to-slate-900/80 border border-emerald-500/30 rounded-2xl p-4 text-center relative overflow-hidden shadow-lg">
+          <div class="absolute -right-2 -bottom-2 text-emerald-500/10 text-5xl font-black">
+            <i class="fa-solid fa-sack-dollar"></i>
+          </div>
+          <div class="text-[11px] text-slate-400 mb-1">預估期末總資產</div>
+          <div id="kpiTotalAssets" class="text-lg sm:text-xl font-extrabold text-emerald-400 font-mono tracking-tight">$0</div>
+        </div>
+
+        <!-- Initial Capital -->
+        <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 text-center shadow-lg">
+          <div class="text-[11px] text-slate-400 mb-1">初始本金</div>
+          <div id="kpiInitCapital" class="text-base sm:text-lg font-bold text-sky-400 font-mono tracking-tight">$0</div>
+        </div>
+
+        <!-- Cumulative Monthly Investment -->
+        <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 text-center shadow-lg">
+          <div class="text-[11px] text-slate-400 mb-1">累積定期定額投入</div>
+          <div id="kpiMonthlyTotal" class="text-base sm:text-lg font-bold text-indigo-400 font-mono tracking-tight">$0</div>
+        </div>
+
+        <!-- Estimated Returns -->
+        <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 text-center shadow-lg">
+          <div class="text-[11px] text-slate-400 mb-1">預估複利總收益</div>
+          <div id="kpiInterest" class="text-base sm:text-lg font-bold text-amber-400 font-mono tracking-tight">$0</div>
+          <div id="kpiRoi" class="text-[10px] text-amber-300 font-mono mt-0.5">(+0%)</div>
+        </div>
+      </div>
+
+      <!-- Chart Container -->
+      <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 flex-1 min-h-[340px] flex flex-col justify-between shadow-xl">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div>
+            <h3 class="text-sm font-semibold text-slate-200">資產累積增長趨勢圖</h3>
+            <p class="text-[11px] text-slate-400">直觀比較「初始本金」、「定期定額」與「複利收益」之佔比差異</p>
+          </div>
+          <div class="flex items-center space-x-3 text-[11px] text-slate-400 bg-slate-950/60 px-3 py-1.5 rounded-lg border border-slate-800">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-sky-400 rounded-full inline-block"></span>初始本金</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-indigo-500 rounded-full inline-block"></span>累積投入</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-emerald-400 rounded-full inline-block"></span>複利收益</span>
+          </div>
+        </div>
+
+        <div class="relative w-full h-[260px] sm:h-[280px]">
+          <canvas id="growthChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Breakdown Table Card -->
+      <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-table text-emerald-400"></i>歷年資產成長明細表
+          </h3>
+          <span class="text-[11px] text-slate-500">單位：新台幣 (NTD)</span>
+        </div>
+
+        <div class="overflow-x-auto max-h-[180px] overflow-y-auto rounded-xl border border-slate-800/80">
+          <table class="w-full text-xs text-left text-slate-300">
+            <thead class="text-[11px] text-slate-400 uppercase bg-slate-950/90 sticky top-0 z-10 border-b border-slate-800">
+              <tr>
+                <th class="px-3.5 py-2.5">年度</th>
+                <th class="px-3.5 py-2.5">初始本金</th>
+                <th class="px-3.5 py-2.5">累積投入 (定期定額)</th>
+                <th class="px-3.5 py-2.5">總投入本金</th>
+                <th class="px-3.5 py-2.5">累積複利收益</th>
+                <th class="px-3.5 py-2.5">期末總資產</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody" class="divide-y divide-slate-800/60 font-mono">
+              <!-- Dynamically Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800/80 py-4 text-center text-xs text-slate-500">
+    <p>StockCalc Financial Visualizer | Built with HTML5, Chart.js & Tailwind CSS</p>
+  </footer>
+
+  <!-- JavaScript Application Logic -->
+  <script>
+    // Currency Formatter Utility
+    function formatNTD(number) {
+      return '$' + Math.round(number).toLocaleString('zh-TW');
+    }
+
+    // Input Control Pair Synchronizer
+    function setupDualInputs(rangeId, numberId, updateCallback) {
+      const rangeEl = document.getElementById(rangeId);
+      const numberEl = document.getElementById(numberId);
+
+      rangeEl.addEventListener('input', (e) => {
+        numberEl.value = e.target.value;
+        updateCallback();
+      });
+
+      numberEl.addEventListener('input', (e) => {
+        let val = parseFloat(e.target.value);
+        if (isNaN(val)) val = 0;
+        rangeEl.value = val;
+        updateCallback();
+      });
+    }
+
+    // Chart.js Variable Instance
+    let growthChart = null;
+
+    // Initialize Chart.js
+    function initChart() {
+      const ctx = document.getElementById('growthChart').getContext('2d');
+      growthChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: '初始本金',
+              data: [],
+              backgroundColor: 'rgba(56, 189, 248, 0.85)', // Sky blue
+              borderColor: '#38bdf8',
+              borderWidth: 1,
+              borderRadius: 3
+            },
+            {
+              label: '累積定期定額投入',
+              data: [],
+              backgroundColor: 'rgba(99, 102, 241, 0.85)', // Indigo
+              borderColor: '#6366f1',
+              borderWidth: 1,
+              borderRadius: 3
+            },
+            {
+              label: '複利收益',
+              data: [],
+              backgroundColor: 'rgba(52, 211, 153, 0.85)', // Emerald green
+              borderColor: '#34d399',
+              borderWidth: 1,
+              borderRadius: 3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              titleColor: '#f8fafc',
+              bodyColor: '#cbd5e1',
+              borderColor: 'rgba(51, 65, 85, 0.8)',
+              borderWidth: 1,
+              padding: 12,
+              boxPadding: 6,
+              usePointStyle: true,
+              callbacks: {
+                label: function(context) {
+                  return ` ${context.dataset.label}: ${formatNTD(context.raw)}`;
+                },
+                footer: function(tooltipItems) {
+                  let total = 0;
+                  tooltipItems.forEach(item => { total += item.raw; });
+                  return `期末總資產: ${formatNTD(total)}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              stacked: true,
+              grid: { color: 'rgba(255, 255, 255, 0.04)' },
+              ticks: { color: '#94a3b8', font: { size: 10 } }
+            },
+            y: {
+              stacked: true,
+              grid: { color: 'rgba(255, 255, 255, 0.04)' },
+              ticks: {
+                color: '#94a3b8',
+                font: { size: 10 },
+                callback: function(value) {
+                  if (value >= 100000000) return (value / 100000000).toFixed(1) + '億';
+                  if (value >= 10000) return (value / 10000).toFixed(0) + '萬';
+                  return value;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Core Calculation Logic
+    function calculateCompoundInterest() {
+      const initCapital = parseFloat(document.getElementById('initCapitalNumber').value) || 0;
+      const monthlyPmt = parseFloat(document.getElementById('monthlyNumber').value) || 0;
+      const annualRate = (parseFloat(document.getElementById('rateNumber').value) || 0) / 100;
+      const years = parseInt(document.getElementById('yearsNumber').value) || 1;
+
+      const monthlyRate = annualRate / 12;
+
+      let currentBalance = initCapital;
+      let cumMonthlyPmt = 0;
+
+      const labels = [];
+      const initCapitalArr = [];
+      const monthlyPmtArr = [];
+      const interestArr = [];
+      const tableRows = [];
+
+      for (let y = 1; y <= years; y++) {
+        // Iterate through 12 months for year 'y'
+        for (let m = 0; m < 12; m++) {
+          currentBalance = (currentBalance + monthlyPmt) * (1 + monthlyRate);
+          cumMonthlyPmt += monthlyPmt;
+        }
+
+        const totalInvested = initCapital + cumMonthlyPmt;
+        const totalInterest = currentBalance - totalInvested;
+
+        labels.push(`第 ${y} 年`);
+        initCapitalArr.push(Math.round(initCapital));
+        monthlyPmtArr.push(Math.round(cumMonthlyPmt));
+        interestArr.push(Math.round(totalInterest));
+
+        tableRows.push({
+          year: y,
+          initCapital: initCapital,
+          cumMonthly: cumMonthlyPmt,
+          totalInvested: totalInvested,
+          interest: totalInterest,
+          totalAsset: currentBalance
+        });
+      }
+
+      const finalTotalAsset = currentBalance;
+      const finalCumMonthly = cumMonthlyPmt;
+      const finalTotalInvested = initCapital + finalCumMonthly;
+      const finalInterest = finalTotalAsset - finalTotalInvested;
+      const overallRoi = finalTotalInvested > 0 ? (finalInterest / finalTotalInvested) * 100 : 0;
+
+      return {
+        labels,
+        initCapitalArr,
+        monthlyPmtArr,
+        interestArr,
+        finalTotalAsset,
+        initCapital,
+        finalCumMonthly,
+        finalInterest,
+        overallRoi,
+        tableRows
+      };
+    }
+
+    // UI Update Pipeline
+    function updateApp() {
+      const data = calculateCompoundInterest();
+
+      // 1. Update KPI Values
+      document.getElementById('kpiTotalAssets').textContent = formatNTD(data.finalTotalAsset);
+      document.getElementById('kpiInitCapital').textContent = formatNTD(data.initCapital);
+      document.getElementById('kpiMonthlyTotal').textContent = formatNTD(data.finalCumMonthly);
+      document.getElementById('kpiInterest').textContent = formatNTD(data.finalInterest);
+      document.getElementById('kpiRoi').textContent = `(+${data.overallRoi.toFixed(1)}%)`;
+
+      // 2. Update Chart.js Data
+      growthChart.data.labels = data.labels;
+      growthChart.data.datasets[0].data = data.initCapitalArr;
+      growthChart.data.datasets[1].data = data.monthlyPmtArr;
+      growthChart.data.datasets[2].data = data.interestArr;
+      growthChart.update();
+
+      // 3. Render Table Rows
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+      data.tableRows.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-800/50 transition-colors';
+        tr.innerHTML = `
+          <td class="px-3.5 py-2 text-slate-400">第 ${row.year} 年</td>
+          <td class="px-3.5 py-2 text-sky-400">${formatNTD(row.initCapital)}</td>
+          <td class="px-3.5 py-2 text-indigo-400">${formatNTD(row.cumMonthly)}</td>
+          <td class="px-3.5 py-2 text-slate-300 font-medium">${formatNTD(row.totalInvested)}</td>
+          <td class="px-3.5 py-2 text-amber-400 font-medium">${formatNTD(row.interest)}</td>
+          <td class="px-3.5 py-2 text-emerald-400 font-bold">${formatNTD(row.totalAsset)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Strategy Presets Loader
+    function applyPreset(type) {
+      if (type === 'conservative') {
+        document.getElementById('initCapitalNumber').value = 50000;
+        document.getElementById('initCapitalRange').value = 50000;
+        document.getElementById('monthlyNumber').value = 5000;
+        document.getElementById('monthlyRange').value = 5000;
+        document.getElementById('rateNumber').value = 3;
+        document.getElementById('rateRange').value = 3;
+        document.getElementById('yearsNumber').value = 15;
+        document.getElementById('yearsRange').value = 15;
+      } else if (type === 'balanced') {
+        document.getElementById('initCapitalNumber').value = 100000;
+        document.getElementById('initCapitalRange').value = 100000;
+        document.getElementById('monthlyNumber').value = 10000;
+        document.getElementById('monthlyRange').value = 10000;
+        document.getElementById('rateNumber').value = 8;
+        document.getElementById('rateRange').value = 8;
+        document.getElementById('yearsNumber').value = 20;
+        document.getElementById('yearsRange').value = 20;
+      } else if (type === 'aggressive') {
+        document.getElementById('initCapitalNumber').value = 200000;
+        document.getElementById('initCapitalRange').value = 200000;
+        document.getElementById('monthlyNumber').value = 20000;
+        document.getElementById('monthlyRange').value = 20000;
+        document.getElementById('rateNumber').value = 12;
+        document.getElementById('rateRange').value = 12;
+        document.getElementById('yearsNumber').value = 25;
+        document.getElementById('yearsRange').value = 25;
+      }
+      updateApp();
+    }
+
+    // Initialize Event Listeners & Boot Application
+    window.addEventListener('DOMContentLoaded', () => {
+      initChart();
+
+      // Bind dual inputs
+      setupDualInputs('initCapitalRange', 'initCapitalNumber', updateApp);
+      setupDualInputs('monthlyRange', 'monthlyNumber', updateApp);
+      setupDualInputs('rateRange', 'rateNumber', updateApp);
+      setupDualInputs('yearsRange', 'yearsNumber', updateApp);
+
+      // Initial First Render
+      updateApp();
+    });
+  </script>
+</body>
+</html>
+```
+
+---
+
+### 🌟 專案功能特色重點說明：
+
+1. **單一檔案部署 (`index.html`)**：
+   * 所有 HTML 結構、Tailwind CSS 配色樣式、Chart.js 函式庫與 JavaScript 計算邏輯皆包含在一個 `.html` 檔案中，完全符合作業或發布至 GitHub Pages 的需求。
+2. **三層分層堆疊圖表 (Stacked Bar Chart)**：
+   * 圖表將每一年的資產精細拆解為 **初始本金 (藍色)**、**累積定期定額 (紫色)** 與 **複利收益 (綠色)**，讓使用者能直觀看出時間長度與複利帶來的「微笑曲線」。
+3. **雙向同步輸入元件**：
+   * 數值輸入框（Number Input）與動態滑桿（Range Slider）完全雙向綁定，使用者不論是拖曳滑桿或直接打字輸入，圖表與 KPI 均能實時計算。
+4. **內建投資情境範本 (Preset Scenarios)**：
+   * 提供「保守防守 (3%)」、「穩健配置 (8%)」、「積極成長 (12%)」一鍵帶入範本按鈕，便於快速體驗不同情境下的長期資產差異。
+
+<ElicitationsGroup>
+  <Elicitation>是否需要為您加入「考慮通貨膨脹率 (%)」的實質購買力試算功能？</Elicitation>
+  <Elicitation>是否需要導出 PDF 報告或匯出 CSV 歷年明細資料的功能？</Elicitation>
+</ElicitationsGroup>
+
+<FollowUp>
+  <Suggestion>協助將「通貨膨脹率」加入試算邏輯並顯示折現後的實質資產</Suggestion>
+  <Suggestion>指導如何在 GitHub 上建立 Repository 並透過 GitHub Pages 免費公開此網站</Suggestion>
+</FollowUp>
