@@ -543,26 +543,3 @@
 </body>
 </html>
 ```
-
----
-
-### 🌟 專案功能特色重點說明：
-
-1. **單一檔案部署 (`index.html`)**：
-   * 所有 HTML 結構、Tailwind CSS 配色樣式、Chart.js 函式庫與 JavaScript 計算邏輯皆包含在一個 `.html` 檔案中，完全符合作業或發布至 GitHub Pages 的需求。
-2. **三層分層堆疊圖表 (Stacked Bar Chart)**：
-   * 圖表將每一年的資產精細拆解為 **初始本金 (藍色)**、**累積定期定額 (紫色)** 與 **複利收益 (綠色)**，讓使用者能直觀看出時間長度與複利帶來的「微笑曲線」。
-3. **雙向同步輸入元件**：
-   * 數值輸入框（Number Input）與動態滑桿（Range Slider）完全雙向綁定，使用者不論是拖曳滑桿或直接打字輸入，圖表與 KPI 均能實時計算。
-4. **內建投資情境範本 (Preset Scenarios)**：
-   * 提供「保守防守 (3%)」、「穩健配置 (8%)」、「積極成長 (12%)」一鍵帶入範本按鈕，便於快速體驗不同情境下的長期資產差異。
-
-<ElicitationsGroup>
-  <Elicitation>是否需要為您加入「考慮通貨膨脹率 (%)」的實質購買力試算功能？</Elicitation>
-  <Elicitation>是否需要導出 PDF 報告或匯出 CSV 歷年明細資料的功能？</Elicitation>
-</ElicitationsGroup>
-
-<FollowUp>
-  <Suggestion>協助將「通貨膨脹率」加入試算邏輯並顯示折現後的實質資產</Suggestion>
-  <Suggestion>指導如何在 GitHub 上建立 Repository 並透過 GitHub Pages 免費公開此網站</Suggestion>
-</FollowUp>
